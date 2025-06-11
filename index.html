@@ -2,78 +2,67 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
+  <title>Ruta Real de Reciclaje - Santiago</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Ruta de Reciclaje - Santiago de Chile</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    body { margin: 0; font-family: Arial, sans-serif; }
-    h1 { text-align: center; background: #4CAF50; color: white; padding: 1rem; }
+    body { margin: 0; font-family: Arial; }
+    h1 { background: #4CAF50; color: white; text-align: center; padding: 1rem; }
     #map { height: 90vh; }
   </style>
 </head>
 <body>
-  <h1>Ruta de Camiones de Reciclaje - Santiago de Chile</h1>
+  <h1>Ruta Real de Camiones de Reciclaje</h1>
   <div id="map"></div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-polylineoffset/leaflet.polylineoffset.js"></script>
   <script>
-    // Mapa centrado en Santiago
-    var map = L.map('map').setView([-33.48, -70.61], 12);
+    const apiKey = 'TU_API_KEY_ACÁ'; // ← Pega tu clave de OpenRouteService aquí
 
-    // Mapa base
+    const map = L.map('map').setView([-33.50, -70.61], 12);
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Centros de acopio
-    const centrosAcopio = [
-      {
-        nombre: "Centro de acopio La Granja",
-        direccion: "Av. Santa Rosa 9200",
-        coords: [-33.5410, -70.6194]
-      },
-      {
-        nombre: "Centro de acopio Puente Alto",
-        direccion: "Av. Concha y Toro 2870",
-        coords: [-33.6111, -70.5759]
-      },
-      {
-        nombre: "Centro de acopio Macul",
-        direccion: "Av. Macul 2900",
-        coords: [-33.4922, -70.6078]
-      }
+    // Puntos de parada
+    const paradas = [
+      [-33.6111, -70.5759], // Puente Alto
+      [-33.5410, -70.6194], // La Granja
+      [-33.4922, -70.6078], // Macul
+      [-33.4574, -70.6015]  // Ñuñoa
     ];
 
-    centrosAcopio.forEach(ca => {
-      L.marker(ca.coords, { icon: L.icon({ iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png", iconSize: [25, 25] }) })
-        .addTo(map)
-        .bindPopup(`<strong>${ca.nombre}</strong><br>${ca.direccion}`);
+    // Agrega marcadores
+    paradas.forEach((coords, i) => {
+      L.marker(coords).addTo(map).bindPopup(`Parada ${i + 1}`);
     });
 
-    // Puntos verdes extra (opcionales)
-    const puntosVerdes = [
-      { nombre: "Punto Verde Ñuñoa", direccion: "Av. Grecia 4369", coords: [-33.4574, -70.6015] },
-      { nombre: "Punto Limpio Vitacura", direccion: "Av. Américo Vespucio Norte 1900", coords: [-33.3842, -70.5941] }
-    ];
+    // Solicita ruta real por calles a OpenRouteService
+    async function cargarRuta() {
+      const response = await fetch('https://api.openrouteservice.org/v2/directions/driving-car/geojson', {
+        method: 'POST',
+        headers: {
+          'Authorization': apiKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          coordinates: paradas.map(p => [p[1], p[0]])  // [lng, lat]
+        })
+      });
 
-    puntosVerdes.forEach(pv => {
-      L.marker(pv.coords)
-        .addTo(map)
-        .bindPopup(`<strong>${pv.nombre}</strong><br>${pv.direccion}`);
-    });
+      const data = await response.json();
 
-    // Ruta del camión conectando centros de acopio
-    const rutaCamion = [
-      [-33.6111, -70.5759],  // Puente Alto
-      [-33.5410, -70.6194],  // La Granja
-      [-33.4922, -70.6078]   // Macul
-    ];
+      L.geoJSON(data, {
+        style: {
+          color: 'green',
+          weight: 5
+        }
+      }).addTo(map).bindPopup("Ruta del camión");
+    }
 
-    L.polyline(rutaCamion, {
-      color: 'green',
-      weight: 4,
-      opacity: 0.8
-    }).addTo(map).bindPopup("Ruta del camión de reciclaje");
+    cargarRuta();
   </script>
 </body>
 </html>
