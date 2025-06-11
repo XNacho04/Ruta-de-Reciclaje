@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Ruta Real de Reciclaje - Santiago</title>
+  <title>Ruta de Camiones de Reciclaje - Santiago</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
@@ -12,64 +12,68 @@
   </style>
 </head>
 <body>
-  <h1>Ruta Real de Camiones de Reciclaje</h1>
+  <h1>Ruta de Reciclaje en Santiago</h1>
   <div id="map"></div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    const apiKey = '5b3ce3597851110001cf62480c2f47156bb74bc79c6f4eaf5fc7ecf1'; // Tu API Key
+    const apiKey = '5b3ce3597851110001cf62480c2f47156bb74bc79c6f4eaf5fc7ecf1';
 
-    const map = L.map('map').setView([-33.50, -70.61], 12);
+    const map = L.map('map').setView([-33.52, -70.62], 12);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Coordenadas de los centros de acopio
     const paradas = [
-      [-33.6111, -70.5759], // Centro de acopio Puente Alto
-      [-33.5410, -70.6194], // Centro de acopio La Granja
-      [-33.4922, -70.6078], // Centro de acopio Macul
-      [-33.4574, -70.6015]  // Punto final (Ñuñoa)
+      { nombre: "Centro de acopio La Granja", coords: [-33.5410, -70.6194], color: "blue" },
+      { nombre: "Centro de acopio La Pintana", coords: [-33.5927, -70.6233], color: "green" },
+      { nombre: "Centro de acopio El Bosque", coords: [-33.5545, -70.6872], color: "green" },
+      { nombre: "Centro de acopio La Cisterna", coords: [-33.5446, -70.6521], color: "green" },
+      { nombre: "Centro de acopio San Joaquín", coords: [-33.4913, -70.6285], color: "green" },
+      { nombre: "Centro de acopio Peñalolén", coords: [-33.4869, -70.5460], color: "green" }
     ];
 
-    // Agrega marcadores con nombres personalizados
-    const nombres = [
-      "Centro de acopio Puente Alto",
-      "Centro de acopio La Granja",
-      "Centro de acopio Macul",
-      "Punto Final (Ñuñoa)"
-    ];
-
-    paradas.forEach((coords, i) => {
-      L.marker(coords).addTo(map).bindPopup(nombres[i]);
+    // Agregar marcadores con color personalizado
+    paradas.forEach(p => {
+      const marker = L.circleMarker(p.coords, {
+        radius: 8,
+        color: p.color,
+        fillColor: p.color,
+        fillOpacity: 0.9
+      }).addTo(map);
+      marker.bindPopup(p.nombre);
     });
 
-    // Solicita ruta por calles a OpenRouteService
+    // Solicitar ruta por calles
     async function cargarRuta() {
-      const response = await fetch('https://api.openrouteservice.org/v2/directions/driving-car/geojson', {
-        method: 'POST',
-        headers: {
-          'Authorization': apiKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          coordinates: paradas.map(p => [p[1], p[0]])  // [lng, lat]
-        })
-      });
+      try {
+        const response = await fetch('https://api.openrouteservice.org/v2/directions/driving-car/geojson', {
+          method: 'POST',
+          headers: {
+            'Authorization': apiKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            coordinates: paradas.map(p => [p.coords[1], p.coords[0]]),
+            instructions: false
+          })
+        });
 
-      const data = await response.json();
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+        const data = await response.json();
 
-      L.geoJSON(data, {
-        style: {
-          color: 'green',
-          weight: 5
-        }
-      }).addTo(map).bindPopup("Ruta del camión");
+        L.geoJSON(data, {
+          style: { color: 'green', weight: 5 }
+        }).addTo(map).bindPopup("Ruta del camión");
+
+      } catch (error) {
+        alert("No se pudo cargar la ruta: " + error.message);
+        console.error("Error:", error);
+      }
     }
 
     cargarRuta();
   </script>
 </body>
 </html>
-
