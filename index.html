@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Ruta de Reciclaje - La Granja</title>
+  <title>Reciclaje en La Granja – Centro y Puntos Verdes</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
@@ -12,26 +12,23 @@
   </style>
 </head>
 <body>
-  <h1>Reciclaje en La Granja</h1>
+  <h1>Ruta de Reciclaje – La Granja</h1>
   <div id="map"></div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
     const apiKey = '5b3ce3597851110001cf62480c2f47156bb74bc79c6f4eaf5fc7ecf1';
 
-    const map = L.map('map').setView([-33.5184, -70.6113], 15);
-
+    const map = L.map('map').setView([-33.5184399, -70.6113225], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // 🏢 Centro de acopio con coordenadas nuevas y color personalizado
     const centro = {
       nombre: "Centro de acopio La Granja",
       coords: [-33.51843993233389, -70.61132249095938],
       color: "navy"
     };
-
     L.circleMarker(centro.coords, {
       radius: 9,
       color: centro.color,
@@ -39,12 +36,17 @@
       fillOpacity: 0.9
     }).addTo(map).bindPopup(centro.nombre);
 
-    // ♻️ Puntos verdes reales cercanos
     const puntos = [
       { nombre: "Junta Vecinos N°13 (Combarbalá #0580)", coords: [-33.5200, -70.6135] },
       { nombre: "Villa La Serena (San José de la Estrella #1004)", coords: [-33.5212, -70.6090] },
       { nombre: "Bahía Catalina (Río Imperial #0945)", coords: [-33.5190, -70.6160] },
-      { nombre: "Centro Cultural Gabriela Mistral (P.E. Gumucio #0323)", coords: [-33.5220, -70.6105] }
+      { nombre: "Centro Cultural Gabriela Mistral (P.E. Gumucio #0323)", coords: [-33.5220, -70.6105] },
+      { nombre: "Punto Verde Crucero (Santa Rosa #0500)", coords: [-33.5185, -70.6150] },
+      { nombre: "Punto Verde Estrella (Diez de Julio #1200)", coords: [-33.5160, -70.6120] },
+      { nombre: "Punto Verde Patria (Av. Grecia #0823)", coords: [-33.5195, -70.6075] },
+      { nombre: "Punto Verde Cerro (San Gregorio #0450)", coords: [-33.5165, -70.6095] },
+      { nombre: "Punto Verde Municipal (Carlos Valdovinos #0750)", coords: [-33.5225, -70.6130] },
+      { nombre: "Punto Verde Las Industrias (Santa Inés #0300)", coords: [-33.5205, -70.6110] }
     ];
 
     puntos.forEach(p => {
@@ -56,36 +58,29 @@
       }).addTo(map).bindPopup(p.nombre);
     });
 
-    // 🚛 Ruta que recorre todos los puntos y vuelve al centro
     async function cargarRuta() {
       const coordsRuta = [
         centro,
         ...puntos,
         centro
-      ].map(p => [p.coords[1], p.coords[0]]); // long, lat
+      ].map(p => [p.coords[1], p.coords[0]]);
 
       try {
         const res = await fetch('https://api.openrouteservice.org/v2/directions/driving-car/geojson', {
           method: 'POST',
-          headers: {
-            'Authorization': apiKey,
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Authorization': apiKey, 'Content-Type': 'application/json' },
           body: JSON.stringify({ coordinates: coordsRuta, instructions: false })
         });
-
         if (!res.ok) throw new Error(res.status);
         const geo = await res.json();
-
         L.geoJSON(geo, {
           style: { color: 'darkred', weight: 4 }
         }).addTo(map).bindPopup("Ruta del camión");
-      } catch (e) {
+      } catch(e) {
         alert("No se pudo cargar la ruta: " + e.message);
         console.error(e);
       }
     }
-
     cargarRuta();
   </script>
 </body>
