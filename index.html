@@ -12,45 +12,43 @@
   </style>
 </head>
 <body>
-  <h1>Ruta y Puntos Verdes en La Granja</h1>
+  <h1>Reciclaje en La Granja: Centro y Puntos Verdes</h1>
   <div id="map"></div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
     const apiKey = '5b3ce3597851110001cf62480c2f47156bb74bc79c6f4eaf5fc7ecf1';
 
-    const map = L.map('map').setView([-33.5410, -70.6194], 15);
+    // 🗺️ Coordenadas actualizadas
+    const map = L.map('map').setView([-33.5184, -70.6113], 15);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // 🏭 Centro de acopio La Granja
-    const centroDeAcopio = {
+    // 🏢 Centro de acopio con nuevas coordenadas
+    const centro = {
       nombre: "Centro de acopio La Granja",
       coords: [-33.51843993233389, -70.61132249095938],
       color: "blue"
     };
 
-    // 📌 Puntos verdes en La Granja
-    const puntosVerdes = [
-      { nombre: "Punto Verde Santa Anselma", coords: [-33.5422, -70.6210] },
-      { nombre: "Punto Verde Av. Santa Rosa", coords: [-33.5435, -70.6150] },
-      { nombre: "Punto Verde Av. Américo Vespucio", coords: [-33.5380, -70.6215] },
-      { nombre: "Punto Verde Las Industrias", coords: [-33.5390, -70.6175] },
-      { nombre: "Punto Verde San Gregorio", coords: [-33.5448, -70.6192] }
+    L.circleMarker(centro.coords, {
+      radius: 9,
+      color: centro.color,
+      fillColor: centro.color,
+      fillOpacity: 0.9
+    }).addTo(map).bindPopup(centro.nombre);
+
+    // ♻️ Puntos verdes reales cercanos
+    const puntos = [
+      { nombre: "Junta Vecinos N°13 (Combarbalá #0580)", coords: [-33.5200, -70.6135] },
+      { nombre: "Villa La Serena (San José de la Estrella #1004)", coords: [-33.5212, -70.6090] },
+      { nombre: "Bahía Catalina (Río Imperial #0945)", coords: [-33.5190, -70.6160] },
+      { nombre: "Centro Cultural Gabriela Mistral (P.E. Gumucio #0323)", coords: [-33.5220, -70.6105] }
     ];
 
-    // Mostrar centro de acopio
-    L.circleMarker(centroDeAcopio.coords, {
-      radius: 9,
-      color: centroDeAcopio.color,
-      fillColor: centroDeAcopio.color,
-      fillOpacity: 0.95
-    }).addTo(map).bindPopup(centroDeAcopio.nombre);
-
-    // Mostrar puntos verdes
-    puntosVerdes.forEach(p => {
+    puntos.forEach(p => {
       L.circleMarker(p.coords, {
         radius: 6,
         color: "green",
@@ -59,37 +57,33 @@
       }).addTo(map).bindPopup(p.nombre);
     });
 
-    // Ruta desde centro de acopio → puntos verdes → regreso al centro
+    // 🚛 Ruta que sale del centro, recorre los puntos verdes y vuelve
     async function cargarRuta() {
-      try {
-        const coordenadasRuta = [
-          centroDeAcopio,
-          ...puntosVerdes,
-          centroDeAcopio // regreso
-        ].map(p => [p.coords[1], p.coords[0]]);
+      const coordsRuta = [
+        centro,
+        ...puntos,
+        centro
+      ].map(p => [p.coords[1], p.coords[0]]); // long, lat
 
-        const response = await fetch('https://api.openrouteservice.org/v2/directions/driving-car/geojson', {
+      try {
+        const res = await fetch('https://api.openrouteservice.org/v2/directions/driving-car/geojson', {
           method: 'POST',
           headers: {
             'Authorization': apiKey,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            coordinates: coordenadasRuta,
-            instructions: false
-          })
+          body: JSON.stringify({ coordinates: coordsRuta, instructions: false })
         });
 
-        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
-        const data = await response.json();
+        if (!res.ok) throw new Error(res.status);
+        const geo = await res.json();
 
-        L.geoJSON(data, {
-          style: { color: 'blue', weight: 5 }
+        L.geoJSON(geo, {
+          style: { color: 'blue', weight: 4 }
         }).addTo(map).bindPopup("Ruta del camión");
-
-      } catch (error) {
-        alert("No se pudo cargar la ruta: " + error.message);
-        console.error("Error:", error);
+      } catch (e) {
+        alert("No se pudo cargar la ruta: " + e.message);
+        console.error(e);
       }
     }
 
