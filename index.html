@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Ruta de Reciclaje Santiago</title>
+  <title>Ruta de Reciclaje - La Granja</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
@@ -12,49 +12,62 @@
   </style>
 </head>
 <body>
-  <h1>Ruta y Puntos de Reciclaje en Santiago</h1>
+  <h1>Ruta y Puntos Verdes en La Granja</h1>
   <div id="map"></div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
     const apiKey = '5b3ce3597851110001cf62480c2f47156bb74bc79c6f4eaf5fc7ecf1';
 
-    const map = L.map('map').setView([-33.52, -70.62], 12);
+    const map = L.map('map').setView([-33.5410, -70.6194], 15);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // 🎯 Centros de acopio con colores únicos
-    const centrosDeAcopio = [
-      { nombre: "Centro de acopio La Granja", coords: [-33.518377, -70.611290], color: "blue" },
+    // 🏭 Centro de acopio La Granja
+    const centroDeAcopio = {
+      nombre: "Centro de acopio La Granja",
+      coords: [-33.5410, -70.6194],
+      color: "blue"
+    };
+
+    // 📌 Puntos verdes en La Granja
+    const puntosVerdes = [
+      { nombre: "Punto Verde Santa Anselma", coords: [-33.5422, -70.6210] },
+      { nombre: "Punto Verde Av. Santa Rosa", coords: [-33.5435, -70.6150] },
+      { nombre: "Punto Verde Av. Américo Vespucio", coords: [-33.5380, -70.6215] },
+      { nombre: "Punto Verde Las Industrias", coords: [-33.5390, -70.6175] },
+      { nombre: "Punto Verde San Gregorio", coords: [-33.5448, -70.6192] }
     ];
 
-    // 🟢 Mostrar centros de acopio
-    centrosDeAcopio.forEach(p => {
-      const marker = L.circleMarker(p.coords, {
-        radius: 9,
-        color: p.color,
-        fillColor: p.color,
-        fillOpacity: 0.95
-      }).addTo(map);
-      marker.bindPopup(p.nombre);
-    });
+    // Mostrar centro de acopio
+    L.circleMarker(centroDeAcopio.coords, {
+      radius: 9,
+      color: centroDeAcopio.color,
+      fillColor: centroDeAcopio.color,
+      fillOpacity: 0.95
+    }).addTo(map).bindPopup(centroDeAcopio.nombre);
 
-    // 🟠 Mostrar puntos verdes cercanos
+    // Mostrar puntos verdes
     puntosVerdes.forEach(p => {
-      const icono = L.circleMarker(p.coords, {
+      L.circleMarker(p.coords, {
         radius: 6,
-        color: "orange",
-        fillColor: "orange",
+        color: "green",
+        fillColor: "green",
         fillOpacity: 0.8
-      }).addTo(map);
-      icono.bindPopup(p.nombre);
+      }).addTo(map).bindPopup(p.nombre);
     });
 
-    // 🔄 Ruta conectando los centros de acopio
+    // Ruta desde centro de acopio → puntos verdes → regreso al centro
     async function cargarRuta() {
       try {
+        const coordenadasRuta = [
+          centroDeAcopio,
+          ...puntosVerdes,
+          centroDeAcopio // regreso
+        ].map(p => [p.coords[1], p.coords[0]]);
+
         const response = await fetch('https://api.openrouteservice.org/v2/directions/driving-car/geojson', {
           method: 'POST',
           headers: {
@@ -62,7 +75,7 @@
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            coordinates: centrosDeAcopio.map(p => [p.coords[1], p.coords[0]]),
+            coordinates: coordenadasRuta,
             instructions: false
           })
         });
@@ -71,7 +84,7 @@
         const data = await response.json();
 
         L.geoJSON(data, {
-          style: { color: 'green', weight: 5 }
+          style: { color: 'blue', weight: 5 }
         }).addTo(map).bindPopup("Ruta del camión");
 
       } catch (error) {
